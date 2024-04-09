@@ -1,0 +1,90 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Apr  9 11:14:05 2024
+
+@author: Hatem Yazidi
+"""
+
+import PySimpleGUI as sg
+import numpy as np
+
+def calculate_parameters(u, v, w, q, f):
+    # # Calculate beam velocities
+    # b1 = u * np.sin(q) * np.cos(f) - v * np.sin(q) * np.sin(f) + w * np.cos(q)
+    # b2 = -u * np.sin(q) * np.cos(f) + v * np.sin(q) * np.sin(f) + w * np.cos(q)
+    # b3 = u * np.sin(q) * np.sin(f) + v * np.sin(q) * np.cos(f) + w * np.cos(q)
+    # b4 = -u * np.sin(q) * np.sin(f) - v * np.sin(q) * np.cos(f) + w * np.cos(q)
+    # b5 = w
+    
+    # Calculate beam variances
+    b0_1 = w**2 * np.cos(q)**2 + u**2 * np.sin(q)**2 * np.cos(f)**2 + v**2 * np.sin(q)**2 * np.sin(f)**2 + \
+           u * w * np.sin(2 * q) * np.cos(f) - u * v * np.sin(2 * q) * np.sin(2 * f) - \
+           v * w * np.sin(2 * q) * np.sin(f)
+    
+    b0_2 = w**2 * np.cos(q)**2 + u**2 * np.sin(q)**2 * np.cos(f)**2 + v**2 * np.sin(q)**2 * np.sin(f)**2 + \
+           v * w * np.sin(2 * q) * np.sin(f) - u * v * np.sin(2 * q) * np.sin(2 * f) - \
+           u * w * np.sin(2 * q) * np.cos(f)
+    
+    b0_3 = w**2 * np.cos(q)**2 + v**2 * np.sin(q)**2 * np.cos(f)**2 + u**2 * np.sin(q)**2 * np.sin(f)**2 + \
+           u * v * np.sin(2 * q) * np.sin(2 * f) + u * w * np.sin(2 * q) * np.sin(f) + \
+           v * w * np.sin(2 * q) * np.cos(f)
+    
+    b0_4 = w**2 * np.cos(q)**2 + v**2 * np.sin(q)**2 * np.cos(f)**2 + u**2 * np.sin(q)**2 * np.sin(f)**2 - \
+           u * v * np.sin(2 * q) * np.sin(2 * f) - u * w * np.sin(2 * q) * np.sin(f) - \
+           v * w * np.sin(2 * q) * np.cos(f)
+    
+    b0_5 = w**2
+    
+    # Calculate channel co-ordinate component variances
+    u02 = b0_1 + b0_2 - 2 * b0_5 * np.cos(q)**2 / np.sin(q)**2
+    v02 = b0_3 + b0_4 - 2 * b0_5 * np.cos(q)**2 / np.sin(q)**2
+    w02 = b0_5
+    # u0w0 = (b0_2 - b0_1) / (2 * np.sin(2 * q))
+    # v0w0 = (b0_4 - b0_3) / (2 * np.sin(2 * q))
+    
+    # Calculate approximate parameters
+    # u02_1 = u02 * np.cos(f)**2 + v02 * np.sin(f)**2 - u0w0 * np.sin(2 * f)
+    # v02_1 = v02 * np.cos(f)**2 + u02 * np.sin(f)**2 + u0w0 * np.sin(2 * f)
+    # u0w01 = np.sin(q)**2 / np.sin(2 * q) * (u**2 * np.cos(f)**2 + v**2 * np.sin(f)**2 - u * v * np.sin(2 * f))
+    # v0w01 = np.sin(q)**2 / np.sin(2 * q) * (v**2 * np.cos(f)**2 + u**2 * np.sin(f)**2 + u * v * np.sin(2 * f))
+    alpha_t = w02 / (u02 + v02)
+    
+    # Calculate total kinetic energy
+    q_total = u02 + v02 + w02
+    
+    return alpha_t, q_total
+
+layout = [
+    [sg.Text('Input Values')],
+    [sg.Text('u:', size=(8, 1)), sg.InputText(key='-U-')],
+    [sg.Text('v:', size=(8, 1)), sg.InputText(key='-V-')],
+    [sg.Text('w:', size=(8, 1)), sg.InputText(key='-W-')],
+    [sg.Text('q:', size=(8, 1)), sg.InputText(key='-Q-')],
+    [sg.Text('f:', size=(8, 1)), sg.InputText(key='-F-')],
+    [sg.Button('Calculate'), sg.Button('Exit')],
+    [sg.Text('Output')],
+    [sg.Multiline(size=(50, 5), key='-OUTPUT-')],
+]
+
+window = sg.Window('Calculate Parameters', layout)
+
+while True:
+    event, values = window.read()
+    if event == sg.WINDOW_CLOSED or event == 'Exit':
+        break
+    elif event == 'Calculate':
+        try:
+            u = float(values['-U-'])
+            v = float(values['-V-'])
+            w = float(values['-W-'])
+            q = float(values['-Q-'])
+            f = float(values['-F-'])
+            
+            alpha_t, q_total = calculate_parameters(u, v, w, q, f)
+            output_text = f"Total kinetic energy (q): {q_total}\nMisalignment angle (alpha_t): {alpha_t}"
+            window['-OUTPUT-'].update(output_text)
+        except ValueError:
+            sg.popup_error("Invalid input! Please enter valid numeric values.")
+            continue
+
+window.close()
